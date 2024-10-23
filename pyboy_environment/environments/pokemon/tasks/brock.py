@@ -24,6 +24,8 @@ MOVE_CLOSER_TO_GYM_REWARD = 10000
 
 STEPS_TRUNCATION = 500
 TASK_COMPLETION_EXTRA_STEPS = 500
+LEVEL_UP_EXTRA_STEPS = 100
+FIND_BROCK_EXTRA_STEPS = 200
 
 class PokemonBrock(PokemonEnvironment):
     def __init__(
@@ -186,7 +188,7 @@ class PokemonBrock(PokemonEnvironment):
         for i in range(0x5):
             key = f"item_{i}"
             if (key in keys):
-                num_pokeballs += keys[key]
+                num_pokeballs += items[key]
 
         return num_pokeballs
 
@@ -223,8 +225,9 @@ class PokemonBrock(PokemonEnvironment):
         new_levels = new_state["levels"]
         old_levels = self.prior_game_stats["levels"]
         for i in range(len(new_levels)):
-            if (old_levels[i] != 0):
+            if (new_levels[i] > old_levels[i]):
                 reward += (new_levels[i] / old_levels[i] - 1) * LEVEL_UP_MULTIPLIER
+                self.steps -= LEVEL_UP_EXTRA_STEPS # add extra hundred steps after a level up is performed
         return reward
     
     def _get_fight_reward(self, new_state: dict) -> float:
@@ -272,9 +275,11 @@ class PokemonBrock(PokemonEnvironment):
         new_index = room_ids.index(new_state["map_id"])
 
         if (new_index > old_index):
+            self.steps -= FIND_BROCK_EXTRA_STEPS
             return MOVE_CLOSER_TO_GYM_REWARD
         elif (new_index < old_index):
             if (self.prior_game_stats["map_id"] == 0x2f and new_state["map_id"] == 0x0d):
+                self.steps -= FIND_BROCK_EXTRA_STEPS
                 return MOVE_CLOSER_TO_GYM_REWARD # Edge case as 0x0d is found twice
             else:
                 return -MOVE_CLOSER_TO_GYM_REWARD
