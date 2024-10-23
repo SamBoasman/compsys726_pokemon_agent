@@ -20,8 +20,9 @@ ENTER_POKEMART_REWARD = 1000
 PURCHASE_POKEBALL_MULTIPLIER = 500
 CATCH_POKEMON_REWARD = 1000
 TASK_COMPLETION_MULTIPLIER = 10000
+MOVE_CLOSER_TO_GYM_REWARD = 10000
 
-STEPS_TRUNCATION = 1000
+STEPS_TRUNCATION = 500
 TASK_COMPLETION_EXTRA_STEPS = 500
 
 class PokemonBrock(PokemonEnvironment):
@@ -91,7 +92,7 @@ class PokemonBrock(PokemonEnvironment):
     # Represent tasks as individual 0/1 inputs
     def _get_task_list(self, game_stats: dict) -> list[int]:
         active_task = self._select_task(game_stats)
-        num_tasks = 7
+        num_tasks = 8
         tasks = [0] * num_tasks
         tasks[active_task] = 1
         return tasks
@@ -112,6 +113,8 @@ class PokemonBrock(PokemonEnvironment):
             return 5 # catch pokemon
         elif (self._assert_min_pokemon_level(game_stats, 4)):
             return 6 # train party to specified level
+        elif (game_stats["map_id"] != 0x36):
+            return 7 # find gym
         else:
             return 0 # defeat brock
         
@@ -236,7 +239,6 @@ class PokemonBrock(PokemonEnvironment):
 
         if (new_state["y"] < self.prior_game_stats["x"] or
             (new_state["map_id"] == 0x0c and self.prior_game_stats["map_id"] == 00)):
-            self.steps -= TASK_COMPLETION_EXTRA_STEPS
             return 1 * MOVE_UP_MULTIPLIER
         
         return 0
@@ -264,9 +266,37 @@ class PokemonBrock(PokemonEnvironment):
 
         return reward
 
+    def _find_gym_reward(self, new_state: dict) -> float:
+        room_ids = [0x00, 0x0c, 0x01, 0x0d, 0x32, 0x33, 0x2f, 0x0d, 0x02, 0x36]
+        old_index = room_ids.index(self.prior_game_stats["map_id"])
+        new_index = room_ids.index(new_state["map_id"])
+
+        if (new_index > old_index):
+            return MOVE_CLOSER_TO_GYM_REWARD
+        elif (new_index < old_index):
+            if (self.prior_game_stats["map_id"] == 0x2f and new_state["map_id"] == 0x0d):
+                return MOVE_CLOSER_TO_GYM_REWARD # Edge case as 0x0d is found twice
+            else:
+                return -MOVE_CLOSER_TO_GYM_REWARD
+        else:
+            return 0
+
+    def _get_fight_brock_reward(self, new_state: dict) -> float:
+        reward = 0
+        if (new_state["battle_type" ==  2]):
+            if (self.prior_game_stats["battle_type"] == 2):
+                reward += 5
+            else:
+                reward += 100
+        
+        reward += self._deal_damage_reward(new_state)
+
     def _get_change_in_task(self, new_state: dict) -> float:
         old_task = self.prior_game_stats["tasks"].index(1)
         new_task = new_state["tasks"].index(1)
+
+        if (new_task > old_task):
+            self.steps -= TASK_COMPLETION_EXTRA_STEPS
 
         return (new_task - old_task) * TASK_COMPLETION_MULTIPLIER
 
@@ -285,6 +315,10 @@ class PokemonBrock(PokemonEnvironment):
             reward += self._get_purchase_pokeballs_reward(new_state)
         elif (task == 5):
             reward += self._get_catch_pokemon_reward(new_state)
+        elif (task == 7):
+            reward += self._find_gym_reward(new_state)
+        else:
+            reward += self._get_fight_brock_reward(new_state)
 
         # reward for completing a task (is negative for reverting to previous task)
         reward += self._get_change_in_task(new_state)
