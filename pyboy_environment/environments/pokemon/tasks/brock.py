@@ -9,13 +9,15 @@ from pyboy_environment.environments.pokemon.pokemon_environment import (
 from pyboy_environment.environments.pokemon import pokemon_constants as pkc
 
 # Reward Constants
-BASE_REWARD = -10
-IN_GRASS_REWARD = 5
+# Larger value giving to sparser rewards
+# Smaller value giving to more frequently experiened rewards
+BASE_REWARD = -2
+IN_GRASS_REWARD = 1
 START_BATTLE_REWARD = 100
 DEAL_DAMAGE_MULTIPLIER = 100
 GAIN_XP_MULTIPLER = 10
-LEVEL_UP_MULTIPLIER = 100000
-MOVE_UP_MULTIPLIER = 5
+LEVEL_UP_MULTIPLIER = 10000
+MOVE_UP_REWARD = 1
 ENTER_POKEMART_REWARD = 1000
 PURCHASE_POKEBALL_MULTIPLIER = 500
 CATCH_POKEMON_REWARD = 1000
@@ -71,7 +73,7 @@ class PokemonBrock(PokemonEnvironment):
             "ids": self._read_party_id(),
             # "pokemon": [pkc.get_pokemon(id) for id in self._read_party_id()],
             "levels": self._read_party_level(),
-            "type_id": self._read_party_type(),
+            # "type_id": self._read_party_type(),
             # "type": [pkc.get_type(id) for id in self._read_party_type()],
             **self._read_party_hp(),
             "xp": self._read_party_xp(),
@@ -214,7 +216,10 @@ class PokemonBrock(PokemonEnvironment):
     
     def _deal_damage_reward(self, new_state: dict[str, any]) -> int:
         damage_dealt = self.prior_game_stats["enemy_pokemon_health"] - new_state["enemy_pokemon_health"]
-        return damage_dealt * DEAL_DAMAGE_MULTIPLIER
+        if (new_state["battle_type"] != self.prior_game_stats["battle_type"]):
+            return 0
+        else:
+            return damage_dealt * DEAL_DAMAGE_MULTIPLIER
     
     def _xp_reward(self, new_state: dict[str, any]) -> int:
         delta_xp = sum(new_state["xp"]) - sum(self.prior_game_stats["xp"])
@@ -242,7 +247,7 @@ class PokemonBrock(PokemonEnvironment):
 
         if (new_state["y"] < self.prior_game_stats["x"] or
             (new_state["map_id"] == 0x0c and self.prior_game_stats["map_id"] == 00)):
-            return 1 * MOVE_UP_MULTIPLIER
+            return MOVE_UP_REWARD
         
         return 0
     
