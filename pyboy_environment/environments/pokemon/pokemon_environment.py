@@ -71,11 +71,12 @@ class PokemonEnvironment(PyboyEnvironment):
         # Push the button for a few frames
         self.pyboy.send_input(self.valid_actions[button])
 
-        for _ in range(self.act_freq):
+        for _ in range(int(self.act_freq / 2)):
             self.pyboy.tick()
 
         # Release the button
-        self.pyboy.send_input(self.release_button[button])
+        for _ in range(int(self.act_freq / 2)):
+            self.pyboy.send_input(self.release_button[button])
 
     def _generate_game_stats(self) -> dict[str, any]:
         return {

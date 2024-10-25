@@ -25,8 +25,8 @@ TASK_COMPLETION_MULTIPLIER = 10000
 MOVE_CLOSER_TO_GYM_REWARD = 10000
 
 STEPS_TRUNCATION = 500
-TASK_COMPLETION_EXTRA_STEPS = 500
-LEVEL_UP_EXTRA_STEPS = 100
+TASK_COMPLETION_EXTRA_STEPS = 600
+LEVEL_UP_EXTRA_STEPS = 200
 FIND_BROCK_EXTRA_STEPS = 200
 
 class PokemonBrock(PokemonEnvironment):
@@ -86,7 +86,8 @@ class PokemonBrock(PokemonEnvironment):
             "battle_type": self._read_battle_type(),
             "enemy_pokemon_health": self._get_enemy_pokemon_health(),
             "current_pokemon_id": self._get_current_pokemon_id(),
-            "num_pokeballs": self._get_num_pokeballs()
+            "num_pokeballs": self._get_num_pokeballs(),
+            "current_selected_menu_item": self._get_current_selected_menu_item()
         }
         
         game_stats["tasks"] = self._get_task_list(game_stats)
