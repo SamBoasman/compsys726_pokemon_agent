@@ -197,8 +197,15 @@ class PokemonBrock(PokemonEnvironment):
 
     def _get_state(self) -> np.ndarray:
         game_stats = self._generate_game_stats()
-        state = self._get_state_from_stats(game_stats)
+        state = self._get_supplemental_state(game_stats)
         return state
+    
+    def _get_supplemental_state(self, game_stats: dict) -> np.ndarray:
+        state = []
+        state.extend(game_stats["levels"])
+        state.append(game_stats["num_pokeballs"])
+        state.extend(game_stats["tasks"])
+        return np.array(np.array(state))
     
     def _get_state_from_stats(self, game_stats: dict) -> np.ndarray:
         state = []
