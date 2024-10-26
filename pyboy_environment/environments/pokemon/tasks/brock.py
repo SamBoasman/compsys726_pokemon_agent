@@ -202,8 +202,8 @@ class PokemonBrock(PokemonEnvironment):
     
     def _get_supplemental_state(self, game_stats: dict) -> np.ndarray:
         state = []
-        state.extend(game_stats["levels"])
-        state.append(game_stats["num_pokeballs"])
+        # state.extend(game_stats["levels"])
+        # state.append(game_stats["num_pokeballs"])
         state.extend(game_stats["tasks"])
         return np.array(np.array(state))
     
