@@ -103,7 +103,7 @@ class PokemonBrock(PokemonEnvironment):
         return tasks
     
     def _select_task(self, game_stats: dict) -> int:
-        if (game_stats["levels"][0] < 12):
+        if (game_stats["levels"][0] < 8):
             return 1 # fight
         elif (game_stats["party_size"] < 3 and
               self._get_num_pokeballs(game_stats) < 10
@@ -243,8 +243,18 @@ class PokemonBrock(PokemonEnvironment):
                 self.steps -= LEVEL_UP_EXTRA_STEPS # add extra hundred steps after a level up is performed
         return reward
     
+    def _move_up_reward(self, new_state: dict[str, any]) -> float:
+        same_map = new_state["map_id"] == self.prior_game_stats["map_id"]
+        moved_up = new_state["y"] < self.prior_game_stats["y"]
+
+        if (same_map and moved_up):
+            return MOVE_UP_REWARD
+        return 0
+
     def _get_fight_reward(self, new_state: dict) -> float:
         reward = self._is_in_grass() * IN_GRASS_REWARD
+        if (self.prior_game_stats["map_id"] == 0x00):
+            reward += self._move_up_reward(new_state)            
         reward += self._start_battle_reward(new_state)
         reward += self._deal_damage_reward(new_state)
         reward += self._xp_reward(new_state)
@@ -253,7 +263,7 @@ class PokemonBrock(PokemonEnvironment):
     
     def _get_enter_pokemart_village_reward(self, new_state: dict) -> float:
 
-        if (new_state["y"] < self.prior_game_stats["x"] or
+        if ((new_state["y"] < self.prior_game_stats["y"] and self.prior_game_stats["map_id"] != 0x28) or
             (new_state["map_id"] == 0x0c and self.prior_game_stats["map_id"] == 00)):
             return MOVE_UP_REWARD
         
